@@ -1,0 +1,6 @@
+{
+  "name": "SmartRecall",
+  "description": "Accelerate your active memory with real-time speech feedback, practicing words, sentences, and paragraphs offline with streak details, daily analytics, and social challenges.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
