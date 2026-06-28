@@ -868,6 +868,12 @@ fun SettingsScreen(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
+        // §777 — "The OdioBook Family" cross-promotion section (shared component
+        // across every family app): the OdioBook logo, every sibling app, and
+        // clickable odiobook.com links so the whole suite cross-promotes.
+        OdioBookFamilySection(currentAppTitle = "Xello Mind")
     }
 }
 
