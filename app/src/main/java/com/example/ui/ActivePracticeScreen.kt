@@ -8,6 +8,9 @@ import android.speech.SpeechRecognizer
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -221,6 +224,11 @@ fun ActivePracticeScreen(
         } catch (e: Exception) {}
     }
 
+    val scope = rememberCoroutineScope()
+    var speechTimerJob by remember { mutableStateOf<Job?>(null) }
+    var isListeningSessionActive by remember { mutableStateOf(false) }
+    var accumulatedText by remember { mutableStateOf("") }
+
     // Background SpeechRecognizer — listens silently, NO Google popup overlay.
     // Recognized text flows straight into the editor (live, via partial results).
     val speechRecognizer = remember {
@@ -228,6 +236,22 @@ fun ActivePracticeScreen(
             SpeechRecognizer.createSpeechRecognizer(context)
         } else null
     }
+
+    val getRecognitionIntent = {
+        val recognitionLocale = Locale.forLanguageTag(viewModel.localeTagForLanguage(item.language))
+        Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, recognitionLocale.toLanguageTag())
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, recognitionLocale.language)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
+            // Request longer silence timeouts from underlying recognizer engines
+            putExtra("android.speech.extras.SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS", 10000L)
+            putExtra("android.speech.extras.SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS", 10000L)
+            putExtra("android.speech.extras.SPEECH_INPUT_MINIMUM_LENGTH_MILLIS", 10000L)
+        }
+    }
+
     DisposableEffect(speechRecognizer) {
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {}
@@ -242,29 +266,60 @@ fun ActivePracticeScreen(
 
             override fun onPartialResults(partialResults: Bundle?) {
                 val text = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
-                if (text.isNotEmpty()) viewModel.setSpokenText(text)
+                if (text.isNotEmpty()) {
+                    val fullText = if (accumulatedText.isEmpty()) text else "$accumulatedText $text"
+                    viewModel.setSpokenText(fullText)
+                }
             }
 
             override fun onResults(results: Bundle?) {
-                viewModel.updateRecordingState(false)
-                rmsLevel = 0f
-                vibrateStop()
                 val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
-                if (text.isNotEmpty()) viewModel.setSpokenText(text)
+                if (text.isNotEmpty()) {
+                    accumulatedText = if (accumulatedText.isEmpty()) text else "$accumulatedText $text"
+                    viewModel.setSpokenText(accumulatedText)
+                }
+
+                if (isListeningSessionActive) {
+                    try {
+                        speechRecognizer?.startListening(getRecognitionIntent())
+                    } catch (e: Exception) {
+                        isListeningSessionActive = false
+                        speechTimerJob?.cancel()
+                        viewModel.updateRecordingState(false)
+                        rmsLevel = 0f
+                        vibrateStop()
+                    }
+                } else {
+                    viewModel.updateRecordingState(false)
+                    rmsLevel = 0f
+                    vibrateStop()
+                }
             }
 
             override fun onError(error: Int) {
-                viewModel.updateRecordingState(false)
-                rmsLevel = 0f
-                vibrateStop()
-                val msg = when (error) {
-                    SpeechRecognizer.ERROR_NO_MATCH,
-                    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Didn't catch that. Try again or type below!"
-                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission is required for voice typing."
-                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Still listening… give it a moment."
-                    else -> "Voice input error. You can type your response below!"
+                if (isListeningSessionActive) {
+                    try {
+                        speechRecognizer?.startListening(getRecognitionIntent())
+                    } catch (e: Exception) {
+                        isListeningSessionActive = false
+                        speechTimerJob?.cancel()
+                        viewModel.updateRecordingState(false)
+                        rmsLevel = 0f
+                        vibrateStop()
+                    }
+                } else {
+                    viewModel.updateRecordingState(false)
+                    rmsLevel = 0f
+                    vibrateStop()
+                    val msg = when (error) {
+                        SpeechRecognizer.ERROR_NO_MATCH,
+                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Didn't catch that. Try again or type below!"
+                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission is required for voice typing."
+                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Still listening… give it a moment."
+                        else -> "Voice input error. You can type your response below!"
+                    }
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                 }
-                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
             }
         })
         onDispose { speechRecognizer?.destroy() }
@@ -277,7 +332,9 @@ fun ActivePracticeScreen(
             Toast.makeText(context, "Speech recognition not available on this device. Please type below!", Toast.LENGTH_LONG).show()
             return@start
         }
-        if (isRecording) {
+        if (isListeningSessionActive) {
+            isListeningSessionActive = false
+            speechTimerJob?.cancel()
             recognizer.stopListening()
             viewModel.updateRecordingState(false)
             rmsLevel = 0f
@@ -286,20 +343,27 @@ fun ActivePracticeScreen(
         }
 
         vibrateStart()
-        // Recognize speech in the language the exercise is written in, so Hindi/Spanish/etc.
-        // recall is transcribed correctly instead of being forced through the device default.
-        val recognitionLocale = Locale.forLanguageTag(viewModel.localeTagForLanguage(item.language))
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, recognitionLocale.toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, recognitionLocale.language)
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
+        accumulatedText = ""
+        isListeningSessionActive = true
+        viewModel.updateRecordingState(true)
+
+        speechTimerJob?.cancel()
+        speechTimerJob = scope.launch {
+            delay(10000L) // Auto stop after 10s
+            if (isListeningSessionActive) {
+                isListeningSessionActive = false
+                recognizer.stopListening()
+                viewModel.updateRecordingState(false)
+                rmsLevel = 0f
+                vibrateStop()
+            }
         }
+
         try {
-            viewModel.updateRecordingState(true)
-            recognizer.startListening(intent)
+            recognizer.startListening(getRecognitionIntent())
         } catch (e: Exception) {
+            isListeningSessionActive = false
+            speechTimerJob?.cancel()
             viewModel.updateRecordingState(false)
             vibrateStop()
             Toast.makeText(context, "Couldn't start voice input. Use the text box below!", Toast.LENGTH_LONG).show()

@@ -17,6 +17,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import com.example.ui.ActivePracticeScreen
 import com.example.ui.DashboardScreen
 import com.example.ui.LeaderboardScreen
@@ -78,14 +84,26 @@ class MainActivity : ComponentActivity() {
                                 .testTag("side_nav_rail"),
                             containerColor = MaterialTheme.colorScheme.background,
                             header = {
-                                Icon(
-                                    imageVector = Icons.Default.Psychology,
-                                    contentDescription = "Xello Mind Logo",
-                                    tint = MaterialTheme.colorScheme.primary,
+                                Box(
                                     modifier = Modifier
                                         .padding(vertical = 24.dp)
                                         .size(36.dp)
-                                )
+                                        .clip(RoundedCornerShape(8.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_launcher_background),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                        contentDescription = "Xello Mind Logo",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                }
                             }
                         ) {
                             val railTabs = listOf(
@@ -120,17 +138,48 @@ class MainActivity : ComponentActivity() {
                             topBar = {
                                 CenterAlignedTopAppBar(
                                     title = {
-                                        Text(
-                                            text = when (currentTab) {
-                                                "dashboard" -> "Performance Analytics"
-                                                "practice_list" -> "Practice"
-                                                "active_practice" -> "Vocal Practice"
-                                                "leaderboard" -> "Leaderboard"
-                                                else -> "Settings"
-                                            },
-                                            fontWeight = FontWeight.Black,
-                                            style = MaterialTheme.typography.titleLarge
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(RoundedCornerShape(8.dp)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Image(
+                                                    painter = painterResource(id = R.drawable.ic_launcher_background),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                                Image(
+                                                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                                    contentDescription = "Xello Mind Logo",
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = ContentScale.Fit
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Text(
+                                                text = "Xello Mind",
+                                                fontWeight = FontWeight.Black,
+                                                style = MaterialTheme.typography.titleMedium
+                                            )
+                                            Text(
+                                                text = " | " + when (currentTab) {
+                                                    "dashboard" -> "Analytics"
+                                                    "practice_list" -> "Practice"
+                                                    "active_practice" -> "Vocal"
+                                                    "leaderboard" -> "League"
+                                                    else -> "Settings"
+                                                },
+                                                fontWeight = FontWeight.Normal,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                            )
+                                        }
                                     },
                                     navigationIcon = {
                                         if (canGoBack && currentTab == "active_practice") {
@@ -186,17 +235,48 @@ class MainActivity : ComponentActivity() {
                         topBar = {
                             CenterAlignedTopAppBar(
                                 title = {
-                                    Text(
-                                        text = when (currentTab) {
-                                            "dashboard" -> "Performance Analytics"
-                                            "practice_list" -> "Practice"
-                                            "active_practice" -> "Vocal Practice"
-                                            "leaderboard" -> "Leaderboard"
-                                            else -> "Settings"
-                                        },
-                                        fontWeight = FontWeight.Black,
-                                        style = MaterialTheme.typography.titleLarge
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .clip(RoundedCornerShape(8.dp)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(
+                                                painter = painterResource(id = R.drawable.ic_launcher_background),
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                            Image(
+                                                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                                contentDescription = "Xello Mind Logo",
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Fit
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Xello Mind",
+                                            fontWeight = FontWeight.Black,
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                        Text(
+                                            text = " | " + when (currentTab) {
+                                                "dashboard" -> "Analytics"
+                                                "practice_list" -> "Practice"
+                                                "active_practice" -> "Vocal"
+                                                "leaderboard" -> "League"
+                                                else -> "Settings"
+                                            },
+                                            fontWeight = FontWeight.Normal,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        )
+                                    }
                                 },
                                 navigationIcon = {
                                     if (canGoBack && currentTab == "active_practice") {
