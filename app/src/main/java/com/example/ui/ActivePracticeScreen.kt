@@ -174,6 +174,9 @@ fun ActivePracticeScreen(
                 // Play error/needs-practice audio
                 SoundSynth.playError()
             }
+            // §778 — full-screen ad after a completed practice session (a natural
+            // break; paced + capped 5/day). No-op until ads are enabled for "xellomind".
+            (context as? android.app.Activity)?.let { com.example.ads.OdioBookAds.maybeShowInterstitial(it) }
         } else {
             confettiParticles = emptyList()
         }

@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- §778 — needed to fetch the ads config + serve AdMob ads. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Allows binding to the on-device speech recognition service (Android 11+) -->
     <queries>
@@ -22,6 +24,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
+        <!-- §778 — AdMob app id. Google's PUBLIC TEST id (safe to ship); the founder
+             swaps in the real id (from the OdioBook admin → Apps → Xello Mind) before
+             a production ads launch. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

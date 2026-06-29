@@ -451,6 +451,11 @@ fun DashboardScreen(
                 item {
                     StatsSummaryRow(logs)
                 }
+                // §778 — config-driven OdioBook banner (admin-controlled; no-op until
+                // ads are enabled for "xellomind"). Bottom of the dashboard list.
+                item {
+                    com.example.ads.OdioBookAds.Banner(modifier = Modifier.padding(vertical = 8.dp))
+                }
             }
         }
     }

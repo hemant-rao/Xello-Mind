@@ -33,6 +33,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // §778 — config-driven OdioBook ads (admin-controlled). Inits MobileAds +
+        // fetches this app's slice; no-op until ads are enabled for "xellomind".
+        com.example.ads.OdioBookAds.init(applicationContext, "xellomind")
 
         setContent {
             val userProfile by viewModel.userProfile.collectAsState()
